@@ -9,11 +9,24 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent" >
 
-        <ListView
+        <Button 
+            android:id="@+id/btn"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:onClick="btnClick"
+            android:text="This is a button"/>
+        <!-- <ListView
             android:id="@+id/list_view"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent" >
-        </ListView>
+        </ListView> -->
+        
+        <GridView
+            android:id="@+id/grid_view"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:numColumns="3">
+        </GridView>
     </com.example.testmypulltorefresh.view3.MyRefreshableView>
 
 </RelativeLayout>

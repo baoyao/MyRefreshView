@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -39,7 +40,8 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	private long mTimeOut = 5 * 1000;
 
 	/** 下拉的阻尼 */
-	private static final int SCROLL_DAMP = 4;
+	private static int scroll_damp = 4;
+	private static int scroll_damp_old = scroll_damp;
 
 	/** 下拉状态 */
 	private static final int STATUS_PULL_TO_REFRESH = 0;
@@ -83,7 +85,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	private View mHeaderView;
 
 	/** 需要去下拉刷新的AdapterView */
-	 private AdapterView mAdapterView;
+	private AdapterView mAdapterView;
 
 	/** 刷新时显示的进度条 */
 	private ProgressBar mHeaderProgressBar;
@@ -112,7 +114,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	/** 手指按下时的屏幕纵坐标 */
 	private float mDownY;
 
-	/** 在被判定为滚动之前用户手指可以移动的最大值，移动大于这个值才算移动*/
+	/** 在被判定为滚动之前用户手指可以移动的最大值，移动大于这个值才算移动 */
 	private int mTouchSlop;
 
 	/** 是否已加载过一次layout，这里onLayout中的初始化只需加载一次 */
@@ -121,7 +123,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	/** 当前是否可以下拉，只有ListView滚动到头的时候才允许下拉 */
 	private boolean mAbleToPull;
 
-	/**下拉刷新控件的构造函数，会在运行时动态添加一个下拉头的布局*/
+	/** 下拉刷新控件的构造函数，会在运行时动态添加一个下拉头的布局 */
 	public MyRefreshableView(Context context, AttributeSet attrs) {
 		super(context, attrs);
 		mLastPullTimePreferences = PreferenceManager
@@ -141,7 +143,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 		addView(mHeaderView, 0);
 	}
 
-	/**进行一些关键性的初始化操作，比如：将下拉头向上偏移进行隐藏，给ListView注册touch事件*/
+	/** 进行一些关键性的初始化操作，比如：将下拉头向上偏移进行隐藏，给ListView注册touch事件 */
 	@Override
 	protected void onLayout(boolean changed, int l, int t, int r, int b) {
 		super.onLayout(changed, l, t, r, b);
@@ -152,7 +154,6 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 			mHeaderLayoutParams.topMargin = mHeaderHideHeight;
 			// listView = (ListView) getChildAt(2);
 			// listView.setOnTouchListener(this);
-			// this.setOnTouchListener(this);
 			mIsFirstLoad = false;
 		}
 	}
@@ -160,13 +161,9 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	@Override
 	protected void onFinishInflate() {
 		super.onFinishInflate();
-		findAdapterView();
-	}
-
-	private void findAdapterView(){
-		for(int i=0;i<getChildCount();i++){
-			if(getChildAt(i)!=null&&getChildAt(i) instanceof AdapterView){
-				mAdapterView =(AdapterView) getChildAt(i);
+		for (int i = 0; i < getChildCount(); i++) {
+			if (getChildAt(i) != null && getChildAt(i) instanceof AdapterView) {
+				mAdapterView = (AdapterView) getChildAt(i);
 				mAdapterView.setOnTouchListener(this);
 				break;
 			}
@@ -175,19 +172,19 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		// TODO Auto-generated method stub
+		// 处理当内部没有控件或者为普通控件时也支持下拉刷新
+		if(mAdapterView == null){
+			return touch(event,true);
+		}
 		return super.onTouchEvent(event);
-//		return touch(event);
 	}
 
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
-		// TODO Auto-generated method stub
-		return touch(event);
-//		return false;
+		return touch(event,false);
 	}
 
-	private boolean touch(MotionEvent event){
+	private boolean touch(MotionEvent event, boolean isInterrupt){
 		setIsAbleToPull(mAdapterView, event);
 		if (mAbleToPull) {
 			float x=event.getRawX();
@@ -203,6 +200,10 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 				
 				int distance = (int) (y - mDownY);//(distance 上滑-- 下滑++)
 				if(DEBUG)Log.v(TAG,"distance: "+distance);
+
+				if (Math.abs(distance) < mTouchSlop) {//16 移动大于这个值才算移动//添加Math.ads解决正在刷新的时候不能上滑
+					return false;
+				}
 				
 				// 如果手指是下滑状态，并且下拉头是完全隐藏的，就屏蔽下拉事件 (topMargin 上滑-- 下滑++)
 				if (distance <= 0
@@ -211,11 +212,8 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 					return false;
 				}
 
-				if (Math.abs(distance) < mTouchSlop) {//16 移动大于这个值才算移动//添加Math.ads解决正在刷新的时候不能上滑
-					return false;
-				}
-				
 				int hideHeaderHeight = mHeaderHideHeight;
+				scroll_damp = scroll_damp_old;
 				if (mCurrentStatus != STATUS_REFRESHING) {
 					if (mHeaderLayoutParams.topMargin > 0) {
 						mCurrentStatus = STATUS_RELEASE_TO_REFRESH;
@@ -223,12 +221,15 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 						mCurrentStatus = STATUS_PULL_TO_REFRESH;
 					}
 				}else{
+					if(distance < 0){
+						scroll_damp = 1;
+					}
 					hideHeaderHeight=0;
 				}
 				// 通过偏移下拉头的topMargin值，来实现下拉效果
-				mHeaderLayoutParams.topMargin = (distance / SCROLL_DAMP)
+				mHeaderLayoutParams.topMargin = (distance / scroll_damp)
 						+ hideHeaderHeight;
-				if(DEBUG)Log.v("tt","topMargin: "+mHeaderLayoutParams.topMargin);
+				if(DEBUG)Log.v(TAG,"topMargin: "+mHeaderLayoutParams.topMargin);
 				mHeaderView.setLayoutParams(mHeaderLayoutParams);
 				break;
 			case MotionEvent.ACTION_UP:
@@ -240,6 +241,9 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 				} else if (mCurrentStatus == STATUS_PULL_TO_REFRESH) {
 					// 松手时如果是下拉状态，就去调用隐藏下拉头的任务
 					new HideHeaderTask().execute();
+				}else if(mCurrentStatus == STATUS_REFRESHING && mHeaderLayoutParams.topMargin<-50){
+					// 此地只在没有listView的时候会调用到
+					cancelRefreshing();
 				}else if(mCurrentStatus == STATUS_REFRESHING){
 					//如果是正在刷新中，往下拉得太长就返回到中间位置,往上拉就隐藏
 					new PullToTask().execute();
@@ -265,14 +269,12 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 				return true;
 			}
 		}
-		return false;
+		return isInterrupt;
 	}
-	
 
 	/**
 	 * 根据当前ListView的滚动状态来设定 {@link #mAbleToPull}
-	 * 的值，每次都需要在onTouch中第一个执行，这样可以判断出当前
-	 * 应该是滚动ListView，还是应该进行下拉。
+	 * 的值，每次都需要在onTouch中第一个执行，这样可以判断出当前 应该是滚动ListView，还是应该进行下拉。
 	 * 
 	 * @param event
 	 */
@@ -287,6 +289,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 		View firstChild = adapterView.getChildAt(0);
 		if (firstChild != null) {
 			int firstVisiblePos = adapterView.getFirstVisiblePosition();
+			if(DEBUG)Log.v(TAG,"firstChild getTop: " + firstChild.getTop());
 			if (firstVisiblePos == 0 && firstChild.getTop() == 0) {
 				if (!mAbleToPull) {
 					mDownY = event.getRawY();
@@ -295,8 +298,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 				mAbleToPull = true;
 			} else {
 				if (mHeaderLayoutParams.topMargin != mHeaderHideHeight) {
-					mHeaderLayoutParams.topMargin = mHeaderHideHeight;
-					mHeaderView.setLayoutParams(mHeaderLayoutParams);
+					cancelRefreshing();
 				}
 				mAbleToPull = false;
 			}
@@ -305,29 +307,26 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 			mAbleToPull = true;
 		}
 	}
-
-	/**
-	 * 给下拉刷新控件注册一个监听器。
-	 * 	@param id 为了防止不同界面的下拉刷新在上次更新时间上互相有冲突，
-	 * 请不同界面在注册下拉刷新监听器时一定要传入不同的id。
-	 * @param timeOut 设置刷新超时等待时间
-	 * @param pullToRefreshListener 监听器的实现
-	 */
-	public void setOnRefreshListener(int id,long timeOut,PullToRefreshListener pullToRefreshListener) {
-		mCallbackId = id;
-		mTimeOut = timeOut;
-		mListener = pullToRefreshListener;
+	
+	/**取消刷新*/
+	private void cancelRefreshing(){
+		mHeaderLayoutParams.topMargin = mHeaderHideHeight;
+		mHeaderView.setLayoutParams(mHeaderLayoutParams);
+		if(mCurrentStatus == STATUS_REFRESHING){
+			mHandler.sendEmptyMessage(MSG_CANCEL_REFRESH);
+		}
 	}
 
-	/**当所有的刷新逻辑完成后，记录调用一下，否则你的ListView将一直处于正在刷新状态*/
+	/** 当所有的刷新逻辑完成后，记录调用一下，否则你的ListView将一直处于正在刷新状态 */
 	private void finishRefreshing() {
 		mCurrentStatus = STATUS_REFRESH_FINISHED;
 		mLastPullTimePreferences.edit()
-				.putLong(UPDATED_AT + mCallbackId, System.currentTimeMillis()).commit();
+				.putLong(UPDATED_AT + mCallbackId, System.currentTimeMillis())
+				.commit();
 		new HideHeaderTask().execute();
 	}
 
-	/**更新下拉头中的信息*/
+	/** 更新下拉头中的信息 */
 	private void updateHeaderView() {
 		if (mLastStatus != mCurrentStatus) {
 			if (mCurrentStatus == STATUS_PULL_TO_REFRESH) {
@@ -353,7 +352,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 		}
 	}
 
-	/**根据当前的状态来旋转箭头*/
+	/** 根据当前的状态来旋转箭头 */
 	private void rotateArrow() {
 		float pivotX = mHeaderArrowView.getWidth() / 2f;
 		float pivotY = mHeaderArrowView.getHeight() / 2f;
@@ -415,8 +414,28 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 		mHeaderViewUpdateTime.setText(updateAtValue);
 	}
 
-	/** 如果是正在刷新中，往下拉得太长就返回到中间位置,往上拉就隐藏 */
-	class PullToTask extends AsyncTask<Void, Integer, Void> {
+	private static final int MSG_FINISH_REFRESH = 1;
+	private static final int MSG_CANCEL_REFRESH = 2;
+
+	private Handler mHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case MSG_FINISH_REFRESH:
+				finishRefreshing();
+				mListener.onTimeOut();
+				break;
+			case MSG_CANCEL_REFRESH:
+				mHandler.removeMessages(MSG_FINISH_REFRESH);
+				mCurrentStatus = STATUS_REFRESH_FINISHED;
+				mListener.onCancel();
+				break;
+			}
+		}
+	};
+
+	/** 如果是正在刷新中，往下拉得太长就返回到中间位置,或者不小心往上一点也返回到中间位置 */
+	private class PullToTask extends AsyncTask<Void, Integer, Void> {
 		@Override
 		protected Void doInBackground(Void... params) {
 			int topMargin = mHeaderLayoutParams.topMargin;
@@ -429,9 +448,9 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 						break;
 					}
 				} else {
-					topMargin = topMargin + SCROLL_SPEED;
-					if (topMargin <= mHeaderHideHeight) {// 往上拉就隐藏
-						topMargin = mHeaderHideHeight;
+					topMargin = topMargin - SCROLL_SPEED;
+					if (topMargin >=0) {// 不小心往上一点也返回到中间位置
+						topMargin = 0;
 						break;
 					}
 				}
@@ -449,7 +468,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	}
 
 	/** 正在刷新的任务，在此任务中会去回调注册进来的下拉刷新监听器 */
-	class RefreshingTask extends AsyncTask<Void, Integer, Void> {
+	private class RefreshingTask extends AsyncTask<Void, Integer, Void> {
 		@Override
 		protected Void doInBackground(Void... params) {
 			int topMargin = mHeaderLayoutParams.topMargin;
@@ -471,12 +490,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 		protected void onPostExecute(Void result) {
 			if (mListener != null) {
 				mListener.onRefresh();
-				new Handler().postDelayed(new Runnable() {
-					@Override
-					public void run() {
-						finishRefreshing();
-					}
-				}, mTimeOut);
+				mHandler.sendEmptyMessageDelayed(MSG_FINISH_REFRESH, mTimeOut);
 			}
 		}
 
@@ -489,7 +503,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	}
 
 	/** 隐藏下拉头的任务，当未进行下拉刷新或下拉刷新完成后，此任务将会使下拉头重新隐藏 */
-	class HideHeaderTask extends AsyncTask<Void, Integer, Integer> {
+	private class HideHeaderTask extends AsyncTask<Void, Integer, Integer> {
 		@Override
 		protected Integer doInBackground(Void... params) {
 			int topMargin = mHeaderLayoutParams.topMargin;
@@ -527,9 +541,26 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 		}
 	}
 
+	/**
+	 * 	给下拉刷新控件注册一个监听器
+	 * 	@param id 为了防止不同界面的下拉刷新在上次更新时间上互相有冲突，
+	 * 	请不同界面在注册下拉刷新监听器时一定要传入不同的id。
+	 * @param timeOut 设置刷新超时等待时间
+	 * @param pullToRefreshListener 监听器的实现
+	 */
+	public void setOnRefreshListener(int id,long timeOut,PullToRefreshListener pullToRefreshListener) {
+		mCallbackId = id;
+		mTimeOut = timeOut;
+		mListener = pullToRefreshListener;
+	}
+
 	public interface PullToRefreshListener {
+		
 		/** 刷新回调 */
 		void onRefresh();
+
+		/** 取消回调 */
+		void onCancel();
 
 		/** 超时回调 */
 		void onTimeOut();
