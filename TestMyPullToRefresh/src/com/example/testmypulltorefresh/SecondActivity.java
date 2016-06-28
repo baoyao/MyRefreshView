@@ -40,18 +40,20 @@ public class SecondActivity extends Activity {
 //			}
 //		});
 		
-		gridView = (GridView) findViewById(R.id.grid_view);
-		adapter = new ArrayAdapter<String>(this,
-				android.R.layout.simple_list_item_1, items);
-		gridView.setAdapter(adapter);
-		gridView.setOnItemClickListener(new OnItemClickListener(){
-			@Override
-			public void onItemClick(AdapterView<?> parent, View view,
-					int position, long id) {
-				Log.v("tt","onItemClick "+position);
-				
-			}
-		});
+//		gridView = (GridView) findViewById(R.id.grid_view);
+//		adapter = new ArrayAdapter<String>(this,
+//				android.R.layout.simple_list_item_1, items);
+//		gridView.setAdapter(adapter);
+//		gridView.setOnItemClickListener(new OnItemClickListener(){
+//			@Override
+//			public void onItemClick(AdapterView<?> parent, View view,
+//					int position, long id) {
+//				Log.v("tt","onItemClick "+position);
+//				
+//			}
+//		});
+		
+		
 		
 		
 		refreshableView = (MyRefreshableView) findViewById(R.id.refreshable_view);

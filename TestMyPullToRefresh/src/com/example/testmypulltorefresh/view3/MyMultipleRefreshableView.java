@@ -29,9 +29,9 @@ import com.example.testmypulltorefresh.R;
  * @author houen.bao
  * @date Jun 20, 2016 10:41:28 AM
  */
-public class MyRefreshableView extends LinearLayout implements OnTouchListener{
+public class MyMultipleRefreshableView extends LinearLayout implements OnTouchListener{
 
-	private final String TAG = MyRefreshableView.class.getSimpleName();
+	private final String TAG = MyMultipleRefreshableView.class.getSimpleName();
 
 	private final boolean DEBUG = true;
 
@@ -126,7 +126,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	private boolean mAbleToPull;
 
 	/** 下拉刷新控件的构造函数，会在运行时动态添加一个下拉头的布局 */
-	public MyRefreshableView(Context context, AttributeSet attrs) {
+	public MyMultipleRefreshableView(Context context, AttributeSet attrs) {
 		super(context, attrs);
 		mLastPullTimePreferences = PreferenceManager
 				.getDefaultSharedPreferences(context);
@@ -199,11 +199,6 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
 		return touch(event,false);
-	}
-
-	@Override
-	public boolean onInterceptTouchEvent(MotionEvent ev) {
-		return super.onInterceptTouchEvent(ev);
 	}
 
 	private boolean touch(MotionEvent event, boolean isInterrupt){
@@ -333,9 +328,7 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 			}
 		} else if (targetView instanceof ScrollView) {
 			ScrollView scrollView = (ScrollView) targetView;
-			Log.v("tt","xx: "+scrollView.getScrollY());
 			if (scrollView.getScrollY() == 0) {
-//				scrollView.getScaleY()
 				mAbleToPull = true;
 			} else {
 				if (mHeaderLayoutParams.topMargin != mHeaderHideHeight) {

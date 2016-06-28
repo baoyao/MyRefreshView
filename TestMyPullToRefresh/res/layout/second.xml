@@ -9,24 +9,80 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent" >
 
-        <Button 
+        <Button
             android:id="@+id/btn"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:onClick="btnClick"
-            android:text="This is a button"/>
-        <!-- <ListView
+            android:text="This is a button" />
+        <!--
+        <ListView
             android:id="@+id/list_view"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent" >
-        </ListView> -->
-        
+        </ListView>
+        -->
+
+
+        <!--
         <GridView
             android:id="@+id/grid_view"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:numColumns="3">
         </GridView>
+        -->
+
+        <ScrollView
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content" >
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
+
+                <HorizontalScrollView
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content" >
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" >
+
+                        <View
+                            android:layout_width="200dp"
+                            android:layout_height="200dp"
+                            android:background="#ffff00" />
+
+                        <View
+                            android:layout_width="200dp"
+                            android:layout_height="200dp"
+                            android:background="#00ffff" />
+
+                        <View
+                            android:layout_width="200dp"
+                            android:layout_height="200dp"
+                            android:background="#f0fff0" />
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <View
+                    android:layout_width="fill_parent"
+                    android:layout_height="400dp"
+                    android:background="#00ff00" />
+
+                <View
+                    android:layout_width="fill_parent"
+                    android:layout_height="400dp"
+                    android:background="#ffff00" />
+
+                <View
+                    android:layout_width="fill_parent"
+                    android:layout_height="400dp"
+                    android:background="#00ffff" />
+            </LinearLayout>
+        </ScrollView>
     </com.example.testmypulltorefresh.view3.MyRefreshableView>
 
 </RelativeLayout>
