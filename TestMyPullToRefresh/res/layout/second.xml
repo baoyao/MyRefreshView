@@ -33,7 +33,7 @@
         </GridView>
         -->
 
-        <ScrollView
+        <com.example.testmypulltorefresh.view3.MyScrollView
             android:layout_width="fill_parent"
             android:layout_height="wrap_content" >
             <LinearLayout
@@ -82,7 +82,7 @@
                     android:layout_height="400dp"
                     android:background="#00ffff" />
             </LinearLayout>
-        </ScrollView>
+        </com.example.testmypulltorefresh.view3.MyScrollView>
     </com.example.testmypulltorefresh.view3.MyRefreshableView>
 
 </RelativeLayout>

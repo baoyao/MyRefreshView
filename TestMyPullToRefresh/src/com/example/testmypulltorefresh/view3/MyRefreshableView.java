@@ -188,22 +188,23 @@ public class MyRefreshableView extends LinearLayout implements OnTouchListener{
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		// 处理当内部没有控件或者为普通控件时也支持下拉刷新
-		if(mTargetView == null){
-			return touch(event,true);
+//		if(mTargetView == null){
+//			return touch(event,true);
+//		}
+		if (mTargetView instanceof ScrollView) {
+			mTargetView.onTouchEvent(event);
 		}
-		ScrollView s=null;
-		HorizontalScrollView h=null;
-		return super.onTouchEvent(event);
+		return touch(event,true);
 	}
 
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
-		return touch(event,false);
+		return false;
 	}
 
 	@Override
 	public boolean onInterceptTouchEvent(MotionEvent ev) {
-		return super.onInterceptTouchEvent(ev);
+		return true;
 	}
 
 	private boolean touch(MotionEvent event, boolean isInterrupt){
